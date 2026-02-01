@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/TP-Reseau-Triphase-BAC-PRO-2025-2026/',
+  base: '/tp-reseau-triphase/',
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
