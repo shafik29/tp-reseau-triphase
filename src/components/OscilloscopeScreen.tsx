@@ -47,7 +47,13 @@ export function OscilloscopeScreen({
   const animationRef = useRef<number>();
   const timeRef = useRef<number>(0);
   const triggerTimeRef = useRef<number>(0);
+  const isTriggerLocked = useRef<boolean>(false);
   const dragRef = useRef<{ type: 'time' | 'volt' | null; cursor: '1' | '2' | null }>({ type: null, cursor: null });
+
+  useEffect(() => {
+    isTriggerLocked.current = false;
+    triggerTimeRef.current = 0;
+  }, [trigger.level, trigger.channel, trigger.enabled]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -129,12 +135,27 @@ export function OscilloscopeScreen({
       if (trigger.channel === 'CH2') phaseShift = -2 * Math.PI / 3;
       if (trigger.channel === 'CH3') phaseShift = -4 * Math.PI / 3;
 
-      const currentTime = Date.now() / 1000;
-      const v = vMax * Math.sin(omega * currentTime + phaseShift);
-      const prevV = vMax * Math.sin(omega * (currentTime - 0.016) + phaseShift);
+      const vMin = -vMax;
 
-      if (prevV < trigger.level && v >= trigger.level) {
-        triggerTimeRef.current = currentTime;
+      if (trigger.level < vMin || trigger.level > vMax) {
+        timeRef.current += 0.016;
+        triggerTimeRef.current = 0;
+        isTriggerLocked.current = false;
+        return;
+      }
+
+      if (!isTriggerLocked.current) {
+        const currentTime = Date.now() / 1000;
+        const v = vMax * Math.sin(omega * currentTime + phaseShift);
+        const prevV = vMax * Math.sin(omega * (currentTime - 0.016) + phaseShift);
+
+        if (prevV < trigger.level && v >= trigger.level) {
+          triggerTimeRef.current = currentTime;
+          isTriggerLocked.current = true;
+        } else if (triggerTimeRef.current === 0) {
+          triggerTimeRef.current = currentTime;
+          isTriggerLocked.current = true;
+        }
       }
 
       timeRef.current = triggerTimeRef.current;
