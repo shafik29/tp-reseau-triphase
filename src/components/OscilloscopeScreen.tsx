@@ -342,23 +342,18 @@ export function OscilloscopeScreen({
     };
   }, [width, height, timeDiv, voltDiv, yPos, channels, frequency, amplitude, isOn, timeCursors, voltCursors, trigger, deltaT, deltaV]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const handlePointerDown = (x: number, y: number) => {
+    const touchThreshold = 15;
 
     if (timeCursors.enabled) {
       const totalTime = timeDiv * 10;
       const x1 = (timeCursors.t1 / totalTime) * width;
       const x2 = (timeCursors.t2 / totalTime) * width;
 
-      if (Math.abs(x - x1) < 10) {
+      if (Math.abs(x - x1) < touchThreshold) {
         dragRef.current = { type: 'time', cursor: '1' };
         return;
-      } else if (Math.abs(x - x2) < 10) {
+      } else if (Math.abs(x - x2) < touchThreshold) {
         dragRef.current = { type: 'time', cursor: '2' };
         return;
       }
@@ -368,25 +363,18 @@ export function OscilloscopeScreen({
       const y1 = height / 2 - (voltCursors.v1 / voltDiv) * (height / 10) + yPos;
       const y2 = height / 2 - (voltCursors.v2 / voltDiv) * (height / 10) + yPos;
 
-      if (Math.abs(y - y1) < 10) {
+      if (Math.abs(y - y1) < touchThreshold) {
         dragRef.current = { type: 'volt', cursor: '1' };
         return;
-      } else if (Math.abs(y - y2) < 10) {
+      } else if (Math.abs(y - y2) < touchThreshold) {
         dragRef.current = { type: 'volt', cursor: '2' };
         return;
       }
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (x: number, y: number) => {
     if (!dragRef.current.type || !dragRef.current.cursor) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
 
     if (dragRef.current.type === 'time' && onTimeCursorChange) {
       const totalTime = timeDiv * 10;
@@ -409,8 +397,65 @@ export function OscilloscopeScreen({
     }
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     dragRef.current = { type: null, cursor: null };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    handlePointerDown(x, y);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    handlePointerMove(x, y);
+  };
+
+  const handleMouseUp = () => {
+    handlePointerUp();
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    handlePointerDown(x, y);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    handlePointerMove(x, y);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    handlePointerUp();
   };
 
   return (
@@ -418,11 +463,15 @@ export function OscilloscopeScreen({
       ref={canvasRef}
       width={width}
       height={height}
-      className="bg-slate-950 rounded-lg cursor-crosshair"
+      className="bg-slate-950 rounded-lg cursor-crosshair touch-none"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     />
   );
 }
